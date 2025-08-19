@@ -1,1 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Tebak Angka</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #ffecd2, #fcb69f);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      color: #222;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      animation: fadeIn 1.5s ease-in-out;
+    }
+    p { font-size: 1.2rem; margin: 10px 0; }
+    input {
+      padding: 10px; font-size: 1rem;
+      border-radius: 8px; border: 1px solid #ccc;
+      margin-right: 10px; text-align: center;
+    }
+    button {
+      padding: 10px 15px; font-size: 1rem;
+      border: none; border-radius: 8px;
+      background: #222; color: #fff;
+      cursor: pointer; transition: 0.3s;
+    }
+    button:hover { background: #444; transform: scale(1.05); }
+    #result {
+      font-size: 1.5rem; font-weight: bold;
+      margin-top: 15px; animation: fadeIn 0.5s ease-in-out;
+    }
+    #status {
+      margin-top: 15px; font-size: 1.2rem;
+    }
+    #leaderboard {
+      margin-top: 20px; text-align: left;
+      max-width: 300px; background: rgba(255,255,255,0.2);
+      padding: 10px; border-radius: 8px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Game Tebak Angka</h1>
+  <p>Komputer memilih angka. Tebak untuk naik level & dapat skor tinggi! 🚀</p>
 
+  <input type="number" id="guess" placeholder="Masukkan angka">
+  <button onclick="checkGuess()">Tebak!</button>
+  <button onclick="resetGame()">🔄 Reset Game</button>
+
+  <p id="result"></p>
+  <p id="status"></p>
+
+  <div id="leaderboard">
+    <h3>🏆 Leaderboard</h3>
+    <ol id="scoresList"></ol>
+  </div>
+
+  <!-- Suara embedded sebagai base64 -->
+  <audio id="soundWin" src="data:audio/mp3;base64,//UklGRigAAABXQVZFZm10IBAAAAABAAEA..."></audio>
+  <audio id="soundLose" src="data:audio/mp3;base64,//UklGRigAAABXQVZFZm10IBAAAAABAAEA..."></audio>
+  <audio id="soundClick" src="data:audio/mp3;base64,//UklGRigAAABXQVZFZm10IBAAAAABAAEA..."></audio>
+
+  <script>
+    let randomNumber, lives, level, score, maxNumber;
+    const leaderboardKey = 'tebakAngkaLeaderboard';
+
+    function startGame(newGame = true) {
+      if (newGame) { level = 1; score = 0; lives = 3; }
+      maxNumber = level * 10;
+      randomNumber = Math.floor(Math.random() * maxNumber) + 1;
+
+      document.getElementById("result").textContent = "";
+      updateStatus();
+      document.getElementById("guess").value = "";
+    }
+
+    function updateStatus() {
+      document.getElementById("status").innerHTML = 
+        `⭐ Level: ${level} | 🎯 Skor: ${score} | ❤️ Nyawa: ${lives} | 🔢 Rentang: 1 - ${maxNumber}`;
+    }
+
+    function updateLeaderboard() {
+      let scores = JSON.parse(localStorage.getItem(leaderboardKey)) || [];
+      if (lives === 0) {
+        scores.push(score);
+        scores.sort((a,b) => b - a);
+        if (scores.length > 5) scores = scores.slice(0,5);
+        localStorage.setItem(leaderboardKey, JSON.stringify(scores));
+      }
+      const list = document.getElementById("scoresList");
+      list.innerHTML = '';
+      scores.forEach(s => { const li = document.createElement("li"); li.textContent = s; list.appendChild(li); });
+    }
+
+    function checkGuess() {
+      const guess = parseInt(document.getElementById("guess").value);
+      const result = document.getElementById("result");
+      const soundWin = document.getElementById("soundWin");
+      const soundLose = document.getElementById("soundLose");
+      const soundClick = document.getElementById("soundClick");
+
+      if (!guess || guess < 1 || guess > maxNumber) { result.textContent = `⚠️ Masukkan angka 1 sampai ${maxNumber}!`; return; }
+
+      if (lives > 0) {
+        if (guess === randomNumber) {
+          score += 10;
+          result.textContent = `🎉 Benar! Angkanya ${randomNumber}. Naik ke level ${level + 1}! 🚀`;
+          soundWin.play();
+          level++;
+          setTimeout(() => startGame(false), 2000);
+        } else {
+          lives--;
+          soundClick.play();
+          if (lives === 0) {
+            result.textContent = `💀 Game Over! Angkanya ${randomNumber}. Skor akhir: ${score}`;
+            soundLose.play();
+            updateLeaderboard();
+          } else if (guess > randomNumber) { result.textContent = "😅 Terlalu besar! Coba lagi."; }
+          else { result.textContent = "😅 Terlalu kecil! Coba lagi."; }
+        }
+        updateStatus();
+      }
+    }
+
+    function resetGame() { startGame(true); updateLeaderboard(); }
+
+    // Mulai game pertama kali
+    startGame(true);
+    updateLeaderboard();
+  </script>
+</body>
+</html>
